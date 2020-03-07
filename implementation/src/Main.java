@@ -48,9 +48,8 @@ public class Main {
             }
         }
 
-        //String fileString = "C:\\Users\\Destin Gigabyte\\Desktop\\ALG_FINAL\\knapsack-analysis\\implementation\\src\\"
-        //       + args[0];
-        String path = "C:\\Users\\desti\\OneDrive - California Polytechnic State University\\Winter 2020\\CPE 349\\Final project\\knapsack-analysis\\implementation\\src\\";
+        String path = "C:\\Users\\Destin Gigabyte\\Desktop\\ALG_FINAL\\knapsack-analysis\\implementation\\src\\";
+        //String path = "C:\\Users\\desti\\OneDrive - California Polytechnic State University\\Winter 2020\\CPE 349\\Final project\\knapsack-analysis\\implementation\\src\\";
 
         for (String fileName : files) {
             ArrayList<Item> items = new ArrayList<>();
@@ -77,13 +76,38 @@ public class Main {
             }
 
             if (doExhaustive && fileName.equals("easy20.txt"))
+            {
+                long startTime = System.currentTimeMillis();
                 exhaustiveSolution(items, maxCapacity);
+                long endTime = System.currentTimeMillis();
+                long timeElapsed = endTime - startTime;
+                System.out.println("Execution time in milliseconds: " + timeElapsed + "\n");
+            }
             if (doGreedy)
+            {
+                long startTime = System.currentTimeMillis();
                 greedySolution(items, maxCapacity);
+                long endTime = System.currentTimeMillis();
+                long timeElapsed = endTime - startTime;
+                System.out.println("Execution time in milliseconds: " + timeElapsed + "\n");
+
+            }
             if (doDynamic)
+            {
+                long startTime = System.currentTimeMillis();
                 dynamicSolution(items, maxCapacity);
+                long endTime = System.currentTimeMillis();
+                long timeElapsed = endTime - startTime;
+                System.out.println("Execution time in milliseconds: " + timeElapsed + "\n");
+            }
             if (doBranch)
+            {
+                long startTime = System.currentTimeMillis();
                 branchAndBoundSolution(items, maxCapacity);
+                long endTime = System.currentTimeMillis();
+                long timeElapsed = endTime - startTime;
+                System.out.println("Execution time in milliseconds: " + timeElapsed + "\n");
+            }
             System.out.println();
             System.out.println();
         }
@@ -334,7 +358,6 @@ public class Main {
         for (Integer integer : res) {
             System.out.print(integer + " ");
         }
-        System.out.println();
         System.out.println();
     }
 
