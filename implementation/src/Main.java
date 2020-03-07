@@ -6,74 +6,102 @@ import java.util.*;
 
 public class Main {
 
+    /**
+     * Used to represent an item from the knapsack.
+     */
     static class Item {
         int weight;
         int value;
         int index;
         double ratio;
 
-        protected Item(int index, int weight, int value) {
+        protected Item(int index, int weight, int value)
+        {
             this.weight = weight;
             this.value = value;
             this.index = index;
-            ratio = (double)value / weight;
+            ratio = (double) value / weight;
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         assert (args.length > 0);
+        boolean doExhaustive = false;
+        boolean doGreedy = false;
+        boolean doDynamic = false;
+        boolean doBranch = false;
+        ArrayList<String> files = new ArrayList<>();
 
-        String fileString = "C:\\Users\\Destin Gigabyte\\Desktop\\ALG_FINAL\\knapsack-analysis\\implementation\\src\\"
-                + args[0];
-
-        ArrayList<Item> items = new ArrayList<>();
-        int maxCapacity = -1;
-
-        // read from file into list of items and get max weight
-        try {
-            List<String> allLines = Files.readAllLines(Paths.get(fileString));
-            for (int i = 1; i < allLines.size(); i++) {
-                if (i == allLines.size() - 1) {
-                    maxCapacity = Integer.valueOf(allLines.get(allLines.size() - 1));
-                } else {
-                    StringTokenizer st1 = new StringTokenizer(allLines.get(i));
-                    int index = Integer.valueOf(st1.nextToken());
-                    int value = Integer.valueOf(st1.nextToken());
-                    int weight = Integer.valueOf(st1.nextToken());
-                    items.add(new Item(index, weight, value));
-                }
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (arg.equals("-e")) {
+                doExhaustive = true;
+            } else if (arg.equals("-g")) {
+                doGreedy = true;
+            } else if (arg.equals("-d")) {
+                doDynamic = true;
+            } else if (arg.equals("-b")) {
+                doBranch = true;
+            } else {
+                files.add(arg);
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
         }
 
-        assert (maxCapacity > -1);
-        for (int i = 1; i < args.length; i++) {
-            String flag = args[i];
-            if (flag.equals("-e")) {
-                exhaustiveSolution(items, maxCapacity);
-            } else if (flag.equals("-g")) {
-                greedySolution(items, maxCapacity);
-            } else if (flag.equals("-d")) {
-                dynamicSolution(items, maxCapacity);
-            } else if (flag.equals("-b")) {
-                branchAndBoundSolution(items, maxCapacity);
+        //String fileString = "C:\\Users\\Destin Gigabyte\\Desktop\\ALG_FINAL\\knapsack-analysis\\implementation\\src\\"
+        //       + args[0];
+        String path = "C:\\Users\\desti\\OneDrive - California Polytechnic State University\\Winter 2020\\CPE 349\\Final project\\knapsack-analysis\\implementation\\src\\";
+
+        for (String fileName : files) {
+            ArrayList<Item> items = new ArrayList<>();
+            int maxCapacity = -1;
+            System.out.println("---------------------------------------------\nFOR FILE " + fileName + "\n");
+            // read from file into list of items and get max weight
+            try {
+                List<String> allLines = Files.readAllLines(Paths.get(path + fileName));
+                for (int i = 1; i < allLines.size(); i++) {
+                    if (i == allLines.size() - 1) {
+                        maxCapacity = Integer.valueOf(allLines.get(allLines.size() - 1));
+                    } else {
+                        StringTokenizer st1 = new StringTokenizer(allLines.get(i));
+                        int index = Integer.valueOf(st1.nextToken());
+                        int value = Integer.valueOf(st1.nextToken());
+                        int weight = Integer.valueOf(st1.nextToken());
+                        items.add(new Item(index, weight, value));
+                    }
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
             }
+
+            if (doExhaustive && fileName.equals("easy20.txt"))
+                exhaustiveSolution(items, maxCapacity);
+            if (doGreedy)
+                greedySolution(items, maxCapacity);
+            if (doDynamic)
+                dynamicSolution(items, maxCapacity);
+            if (doBranch)
+                branchAndBoundSolution(items, maxCapacity);
+            System.out.println();
+            System.out.println();
         }
 
     }
 
-    public static void exhaustiveSolution(List<Item> items, int max) {
+    /**
+     * Find all possible subsets.
+     * Keep a running counter of the maximum solution so far, and print the best one.
+     */
+    public static void exhaustiveSolution(List<Item> items, int maxWeight)
+    {
         items.sort(Comparator.comparingInt(item -> item.index));
         int bestVal = Integer.MIN_VALUE;
         int bestWeight = -1;
         ArrayList<Integer> bestSolution = null;
 
         ArrayList<Integer> currSolution = new ArrayList<>();
-        int curVal = 0;
-        int curWeight = 0;
         Item currItem;
         long numitems = items.size();
         long numSubSets = 1 << numitems;
@@ -81,10 +109,10 @@ public class Main {
         // iterate through all possible subsets
         for (long i = 0; i < numSubSets; i++) {
             currSolution.clear();
-            curVal = 0;
-            curWeight = 0;
+            int curVal = 0;
+            int curWeight = 0;
 
-            // Print current subset
+            // Generate result from subset
             for (int j = 0; j < numitems; j++) {
                 if ((i & (1 << j)) > 0) {
                     currItem = items.get(j);
@@ -94,35 +122,31 @@ public class Main {
                 }
             }
 
-            if (curWeight <= max && curVal > bestVal) {
-                bestSolution = (ArrayList<Integer>) currSolution.clone();
+            if (curWeight <= maxWeight && curVal > bestVal) {
+                bestSolution = new ArrayList<>();
+                bestSolution.addAll(currSolution);
                 bestWeight = curWeight;
                 bestVal = curVal;
             }
         }
-        System.out.println("Using Brute force the best feasible solution found: Value "
-                + bestVal + " Weight " + bestWeight);
-        for (Integer integer : bestSolution) {
-            System.out.print(integer + " ");
-        }
-        System.out.println();
 
+        printResults("Brute Force", bestSolution, bestVal, bestWeight);
     }
 
     /**
      * Using criterion: highest value/weight ratio first
-     *
-     * @param items The list of items to choose from
-     * @param max   the max weight capacity of the knapsack
+     * Sort list of items by criterion and add consecutively to knapsack until full.
      */
-    public static void greedySolution(List<Item> items, int max) {
-        items.sort(Comparator.comparingDouble(item -> (double) item.value / (double) item.weight));
+    public static void greedySolution(List<Item> items, int maxWeight)
+    {
+        items.sort(Comparator.comparingDouble((Item item) -> item.ratio).reversed());
+
         ArrayList<Integer> currSolution = new ArrayList<>();
         int curWeight = 0;
         int curVal = 0;
 
-        for (int i = items.size() - 1; i >= 0; i--) {
-            if (curWeight + items.get(i).weight <= max) {
+        for (int i = 0; i < items.size(); i++) {
+            if (curWeight + items.get(i).weight <= maxWeight) {
                 curWeight += items.get(i).weight;
                 curVal += items.get(i).value;
                 currSolution.add(items.get(i).index);
@@ -130,29 +154,41 @@ public class Main {
         }
 
         currSolution.sort(Integer::compareTo);
-        System.out.println("Using Greedy approach the best feasible solution found: Value "
-                + curVal + " Weight " + curWeight);
-        for (Integer integer : currSolution) {
-            System.out.print(integer + " ");
-        }
-        System.out.println();
-
+        printResults("Greedy", currSolution, curVal, curWeight);
     }
 
-    public static void dynamicSolution(List<Item> items, int max) {
-        int[][] table = new int[items.size() + 1][max + 1];
+    /**
+     * MaxVal(i, w is the maximum value obtainable by picking up
+     * up to i items with w capacity.
+     * <p>
+     * Using recurrence relation:
+     * MaxVal(i, w) = Max( MaxVal(i-1, w), MaxVal(i-1, w - wi) + vi)
+     * With base case MaxVal(0, 0) = 0
+     * <p>
+     * Using backtrack method: If MaxVal(i, w) equal to MaxVal(i-1, w)
+     * then item was not picked up. Else item was chosen, i = i-1, w = w - (weight of i)
+     */
+    public static void dynamicSolution(List<Item> items, int maxWeight)
+    {
+
+        // initiate table with base case (implied with initialization)
+        int[][] table = new int[items.size() + 1][maxWeight + 1];
+
+        // fill in table using recurrence relation
         for (int i = 1; i < table.length; i++) {
             Item item = items.get(i - 1);
-            for (int j = 1; j <= max; j++) {
+            for (int j = 1; j <= maxWeight; j++) {
+
                 table[i][j] = Integer.max(table[i - 1][j],
                         j - item.weight >= 0 ? table[i - 1][j - item.weight] + item.value : 0);
             }
         }
 
+        // backtrack using backtracking method
         int finalVal = 0;
         int finalWeight = 0;
         LinkedList<Integer> finalSolution = new LinkedList<>();
-        int j = max;
+        int j = maxWeight;
         for (int i = items.size(); i > 0; i--) {
             Item item = items.get(i - 1);
 
@@ -167,37 +203,42 @@ public class Main {
             }
         }
 
-        System.out.println("Using Dynamic approach the best feasible solution found: Value "
-                + finalVal + " Weight " + finalWeight);
-        for (Integer integer : finalSolution) {
-            System.out.print(integer + " ");
-        }
-        System.out.println();
-
+        finalSolution.sort(Integer::compareTo);
+        printResults("Dynamic Programming", finalSolution, finalVal, finalWeight);
     }
 
     /**
-     * Use an upper bound of current value + weight available * (value/weight)
-     * Initially attempted independently using explanation in slides, got very close to final answer,
-     * then used
+     * Traverse state space tree, incrementally discovering better solutions.
+     * Tree has N levels for n items. At each level: either take the item or do not.
      * <p>
-     * https://www.geeksforgeeks.org/implementation-of-0-1-knapsack-using-branch-and-bound/
+     * Do not further explore subtree if its maximum bound (see calculateBound below())
+     * Is lower than the best solution found so far. Subtree can not possibly yield a better solution.
      * <p>
-     * To as a replacement for my faulty bounding function.
-     *
-     * @param items
-     * @param max
+     * Once tree has been fully pruned, the current best solution will be the best solution.
      */
-    public static void branchAndBoundSolution(List<Item> items, int max) {
-        // sort by highest ratio first
+    static Entry finalRes = null;
+
+    public static void branchAndBoundSolution(List<Item> items, int maxWeight)
+    {
+
+        // sort by highest ratio value/weight first
         items.sort(Comparator.comparingDouble((Item item) -> item.ratio).reversed());
 
-        int maxSoFar = 0;
         PriorityQueue<Entry> queue = new PriorityQueue<>(items.size());
-        queue.add(new Entry(0,
-                0, 0, new ArrayList<>(), -1));
-        Entry finalRes = new Entry();
+        queue.add(new Entry(0, 0, 0, new ArrayList<>(), -1));
 
+        // add shutdown interrupt to show best solution found so far
+        Thread shutdownHook = new Thread() {
+            public void run()
+            {
+                finalRes.currSolution.sort(Integer::compareTo);
+                printResults("INTERRUPTED Branch and Bound", finalRes.currSolution, finalRes.curVal,
+                        finalRes.currWeight);
+            }
+        };
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+        int maxSoFar = 0;
         while (!queue.isEmpty()) {
             Entry entry = queue.remove();
 
@@ -206,49 +247,59 @@ public class Main {
 
             entry.currIndex += 1;
 
-            // get bound with item (IE 1)
-            Entry newEntry = new Entry(entry);
-            Item nextItem = items.get(newEntry.currIndex);
+            // Assume you take the item, update entry with attributes of next item
+            Item nextItem = items.get(entry.currIndex);
+            Entry newEntry = new Entry(0, entry.currWeight + nextItem.weight,
+                    entry.curVal + nextItem.value,
+                    new ArrayList<>(), entry.currIndex);
 
-            newEntry.currSolution = new ArrayList<>();
             newEntry.currSolution.addAll(entry.currSolution);
             newEntry.currSolution.add(nextItem.index);
 
-            newEntry.curVal += nextItem.value;
-            newEntry.currWeight += nextItem.weight;
-
-            if (newEntry.curVal > maxSoFar && newEntry.currWeight <= max) {
+            // better solution found
+            if (newEntry.curVal > maxSoFar && newEntry.currWeight <= maxWeight) {
                 maxSoFar = newEntry.curVal;
                 finalRes = newEntry;
             }
 
-            newEntry.key = calculateBound(items, newEntry, max);
+            // Add entry to queue if its bound is better than the best solution found so far
+            newEntry.key = calculateBound(items, newEntry, maxWeight);
             if (newEntry.key > maxSoFar) {
                 queue.add(newEntry);
             }
 
-            // get bound without item (IE 0)
-            entry.key = calculateBound(items, entry, max);
+            // Assume you do NOT take the item
+            entry.key = calculateBound(items, entry, maxWeight);
 
+            // No changes needed to the entry besides its index (changed above)
             if (entry.key > maxSoFar) {
-                Entry nother1 = new Entry(entry);
-                queue.add(nother1);
+                queue.add(entry);
             }
 
         }
 
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
         finalRes.currSolution.sort(Integer::compareTo);
-        System.out.println("Using Brute force the best feasible solution found: Value "
-                + finalRes.curVal + " Weight " + finalRes.currWeight);
-        for (Integer integer : finalRes.currSolution) {
-            System.out.print(integer + " ");
-        }
-        System.out.println();
+        printResults("Branch and Bound", finalRes.currSolution, finalRes.curVal, finalRes.currWeight);
 
     }
 
-    static int calculateBound(List<Item> items, Entry entry, int max) {
-        if (entry.currWeight > max) {
+    /**
+     * In order to provide a much tighter bound than what was taught in class:
+     * <p>
+     * From the jth item to the last item, use the greedy approach: highest item/value
+     * ratio first, until the knapsack is nearly full. Then take a fraction of the last item.
+     * This upper bound is will be greater than  the exact solution.
+     * <p>
+     * Credit goes to
+     * https://www.geeksforgeeks.org/implementation-of-0-1-knapsack-using-branch-and-bound/
+     * For insight on providing a much tighter bound.
+     * <p>
+     */
+    static int calculateBound(List<Item> items, Entry entry, int maxWeight)
+    {
+        // capacity exceeded, immediately prune
+        if (entry.currWeight > maxWeight) {
             return -1;
         }
 
@@ -256,14 +307,16 @@ public class Main {
         int totalWeight = entry.currWeight;
         int j = entry.currIndex + 1;
 
-        while (j < items.size() && totalWeight + items.get(j).weight <= max) {
+        // use greedy approach from this item to the last item that will fit
+        while (j < items.size() && totalWeight + items.get(j).weight <= maxWeight) {
             bound += items.get(j).value;
             totalWeight += items.get(j).weight;
             j++;
         }
 
+        // take a fract of the last item (using the upper bound discussed in class)
         if (j < items.size()) {
-            bound += (max - totalWeight) * items.get(j).ratio;
+            bound += (maxWeight - totalWeight) * items.get(j).ratio;
         }
 
         return bound;
@@ -271,6 +324,27 @@ public class Main {
     }
 
 
+    /**
+     * Display the result 0-1 knapsack solution.
+     */
+    static void printResults(String type, List<Integer> res, int val, int weight)
+    {
+        System.out.println("Using " + type + " approach the best feasible solution found " + val
+                + " Weight " + weight);
+        for (Integer integer : res) {
+            System.out.print(integer + " ");
+        }
+        System.out.println();
+        System.out.println();
+    }
+
+
+    /**
+     * Represents a node in the state-space tree for the branch and bound solution.
+     * <p>
+     * double key: represents the upper bound for the partial solution.
+     * key becomes a solution when currIndex == items.size() - 1
+     */
     public static class Entry implements Comparable<Entry> {
         double key;
         int currWeight;
@@ -278,7 +352,8 @@ public class Main {
         ArrayList<Integer> currSolution;
         int currIndex;
 
-        public Entry(double key, int currWeight, int curVal, ArrayList<Integer> currSolution, int currIndex) {
+        public Entry(double key, int currWeight, int curVal, ArrayList<Integer> currSolution, int currIndex)
+        {
             this.key = key;
             this.currWeight = currWeight;
             this.curVal = curVal;
@@ -286,20 +361,9 @@ public class Main {
             this.currIndex = currIndex;
         }
 
-        public Entry(Entry o) {
-            this.key = o.key;
-            this.currWeight = o.currWeight;
-            this.curVal = o.curVal;
-            this.currSolution = o.currSolution;
-            this.currIndex = o.currIndex;
-        }
-
-        public Entry() {
-        }
-
-
         @Override
-        public int compareTo(Entry other) {
+        public int compareTo(Entry other)
+        {
             if (this.key < other.key) {
                 return 1;
             } else if (this.key == other.key) {
